@@ -14,7 +14,7 @@ export default function Header() {
           <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
     
             <span className="text-xl font-bold text-gray-900 hidden sm:block">
-              GitHub Trends
+              SmartRepos
             </span>
           </Link>
 
@@ -64,4 +64,4 @@ export default function Header() {
       </div>
     </div>
   );
-} 
+}

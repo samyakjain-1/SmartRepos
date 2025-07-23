@@ -288,7 +288,7 @@ export default function OnboardingPage() {
           <div className="max-w-4xl mx-auto p-6 pt-12">
             <div className="text-center mb-12">
               <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
-                Welcome to GitHub Trends!
+                Welcome to SmartRepos!
               </h1>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto">
                 Let's personalize your experience! This quick setup helps us recommend technologies that match your interests and experience.
@@ -317,4 +317,4 @@ export default function OnboardingPage() {
       </PageTransition>
     </Page>
   );
-} 
+}

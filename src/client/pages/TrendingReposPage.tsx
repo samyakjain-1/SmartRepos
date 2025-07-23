@@ -173,10 +173,6 @@ function RepositoryCard({ repo }: { repo: Repository }) {
       
       <div className="flex items-center justify-between pt-4 border-t border-gray-100">
         <div className="flex items-center space-x-5">
-          <div className="flex items-center text-sm text-gray-600 group-hover:text-yellow-600 transition-colors">
-            <span className="text-yellow-500 mr-1.5 text-base">⭐</span>
-            <span className="font-semibold">{formatNumber(repo.starsToday)} today</span>
-          </div>
           {repo.language && (
             <div className="flex items-center text-sm text-gray-600">
               <span className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-400 to-indigo-500 mr-1.5"></span>
@@ -416,9 +412,6 @@ export default function TrendingReposPage() {
                               {repo.language}
                             </span>
                           )}
-                          <span className="flex items-center">
-                            ⭐ {repo.starsToday.toLocaleString()}
-                          </span>
                         </div>
                         <span className="text-green-600 font-semibold">
                           {repo.starsToday > 0 ? `+${repo.starsToday.toLocaleString()} today` : 
@@ -444,4 +437,4 @@ export default function TrendingReposPage() {
       </PageTransition>
     </Page>
   );
-} 
+}
