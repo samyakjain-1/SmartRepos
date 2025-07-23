@@ -13,6 +13,7 @@ const TrendingRepoSchema = z.object({
   language: z.string().nullable(),
   starsToday: z.number(),
   rank: z.number(),
+  ownerAvatar: z.string().nullable(),
 });
 
 type TrendingRepo = z.infer<typeof TrendingRepoSchema>;
@@ -60,13 +61,64 @@ async function scrapeGitHubTrending(period: 'daily' | 'weekly' | 'monthly'): Pro
         const languageElement = $repo.find('[itemprop="programmingLanguage"]');
         const language = languageElement.length > 0 ? languageElement.text().trim() : null;
 
-        // Extract stars gained today
+        // Extract stars gained today - try multiple selectors for robustness
         let starsToday = 0;
-        const starsText = $repo.find('.f6.color-fg-muted.mt-2 span:last-child').text().trim();
-        const starsMatch = starsText.match(/(\d{1,3}(?:,\d{3})*)\s+stars?\s+today/i);
-        if (starsMatch) {
-          starsToday = parseInt(starsMatch[1].replace(/,/g, ''), 10) || 0;
+        
+        // Try different possible selectors and text patterns
+        const possibleSelectors = [
+          '.f6.color-fg-muted.mt-2 span:last-child',  // Original selector
+          '.f6.color-fg-muted span:contains("stars")', // More generic
+          '.f6.mt-2 span:last-child',                 // Without color class
+          '.color-fg-muted span:last-child',          // Without size class
+          'span:contains("stars today")',             // Most generic
+          'span:contains("star")',                    // Even more generic
+        ];
+        
+        for (const selector of possibleSelectors) {
+          try {
+            let starsText = $repo.find(selector).text().trim();
+            
+            // If selector didn't work, try finding all text in the repo element
+            if (!starsText) {
+              starsText = $repo.text();
+            }
+            
+            // Try multiple regex patterns to match different formats
+            const patterns = [
+              /(\d{1,3}(?:,\d{3})*)\s+stars?\s+today/i,           // "123 stars today"
+              /(\d{1,3}(?:,\d{3})*)\s+star[s]?\s+this\s+week/i,  // "123 stars this week"
+              /(\d{1,3}(?:,\d{3})*)\s+star[s]?\s+this\s+month/i, // "123 stars this month"
+              /(\d+)\s*★\s*today/i,                              // "123 ★ today"
+              /★\s*(\d+)\s*today/i,                              // "★ 123 today"
+            ];
+            
+            for (const pattern of patterns) {
+              const match = starsText.match(pattern);
+              if (match) {
+                starsToday = parseInt(match[1].replace(/,/g, ''), 10) || 0;
+                if (starsToday > 0) {
+                  console.log(`Found ${starsToday} stars for ${owner}/${name} using pattern: ${pattern}`);
+                  break;
+                }
+              }
+            }
+            
+            if (starsToday > 0) break;
+          } catch (err) {
+            // Continue with next selector
+            continue;
+          }
         }
+        
+        // If we still can't find stars, log for debugging
+        if (starsToday === 0) {
+          const debugText = $repo.text().replace(/\s+/g, ' ').trim();
+          console.log(`Could not extract stars for ${owner}/${name}. Element text: "${debugText.substring(0, 200)}..."`);
+        }
+
+        // Extract owner avatar
+        const avatarImg = $repo.find('img[alt*="avatar"]').first();
+        const ownerAvatar = avatarImg.attr('src') || `https://github.com/${owner}.png?size=64`;
 
         // Create the repository object
         const repo: TrendingRepo = {
@@ -77,6 +129,7 @@ async function scrapeGitHubTrending(period: 'daily' | 'weekly' | 'monthly'): Pro
           language,
           starsToday,
           rank: index + 1,
+          ownerAvatar,
         };
 
         // Validate the data
@@ -128,6 +181,7 @@ export default new Module('githubTrending', {
             language: repo.language || null,
             starsToday: repo.starsToday,
             rank: repo.rank,
+            ownerAvatar: repo.ownerAvatar || null,
           }));
         }
 
@@ -141,6 +195,7 @@ export default new Module('githubTrending', {
           ...repo,
           description: repo.description || undefined,
           language: repo.language || undefined,
+          ownerAvatar: repo.ownerAvatar || undefined,
           period,
           scrapedAt: now,
           scrapedDate: currentDate,
@@ -196,6 +251,7 @@ export default new Module('githubTrending', {
               language: repo.language || undefined,
               starsToday: repo.starsToday,
               rank: repo.rank,
+              ownerAvatar: repo.ownerAvatar || undefined,
               period,
               scrapedAt: now,
               scrapedDate: currentDate,
@@ -258,6 +314,129 @@ export default new Module('githubTrending', {
         cutoffDate: cutoffDateString,
         message: `Cleaned up ${deletedCount} old trending repository records`,
       };
+    },
+
+    // Debug query to test scraping immediately
+    async debugScraping(args) {
+      const { period = 'weekly', limit = 3 } = z.object({
+        period: z.enum(['daily', 'weekly', 'monthly']).optional(),
+        limit: z.number().optional()
+      }).parse(args);
+
+      try {
+        console.log(`[DEBUG] Testing scraping for ${period} period...`);
+        const scrapedRepos = await scrapeGitHubTrending(period);
+        
+        return {
+          success: true,
+          period,
+          totalFound: scrapedRepos.length,
+          sample: scrapedRepos.slice(0, limit).map(repo => ({
+            owner: repo.owner,
+            name: repo.name,
+            starsToday: repo.starsToday,
+            language: repo.language,
+            description: repo.description?.substring(0, 100) + '...',
+          })),
+          starsDistribution: {
+            withStars: scrapedRepos.filter(r => r.starsToday > 0).length,
+            withoutStars: scrapedRepos.filter(r => r.starsToday === 0).length,
+            maxStars: Math.max(...scrapedRepos.map(r => r.starsToday)),
+            avgStars: Math.round(scrapedRepos.reduce((sum, r) => sum + r.starsToday, 0) / scrapedRepos.length),
+          }
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    }
+  },
+  mutations: {
+    /**
+     * Manually trigger a fresh scrape and update database immediately
+     */
+    async triggerFreshScrape(args) {
+      const { period = 'weekly' } = z.object({
+        period: z.enum(['daily', 'weekly', 'monthly']).optional()
+      }).parse(args);
+
+      try {
+        console.log(`[MANUAL SCRAPE] Starting fresh scrape for ${period} period...`);
+        
+        const currentDate = getCurrentDate();
+        const now = new Date();
+        
+        // Clear existing data for this period and date
+        const existingRepos = await dbTrendingRepos.fetch({
+          period,
+          scrapedDate: currentDate,
+        });
+        
+        console.log(`[MANUAL SCRAPE] Clearing ${existingRepos.length} existing entries...`);
+        for (const existingRepo of existingRepos) {
+          await dbTrendingRepos.deleteOne({ _id: existingRepo._id });
+        }
+        
+        // Scrape fresh data
+        const scrapedRepos = await scrapeGitHubTrending(period);
+        console.log(`[MANUAL SCRAPE] Scraped ${scrapedRepos.length} repositories`);
+        
+        // Save to database
+        let savedCount = 0;
+        for (const repo of scrapedRepos) {
+          await dbTrendingRepos.insertOne({
+            owner: repo.owner,
+            name: repo.name,
+            url: repo.url,
+            description: repo.description || undefined,
+            language: repo.language || undefined,
+            starsToday: repo.starsToday,
+            rank: repo.rank,
+            ownerAvatar: repo.ownerAvatar || undefined,
+            period,
+            scrapedAt: now,
+            scrapedDate: currentDate,
+          });
+          savedCount++;
+        }
+        
+        // Calculate stats
+        const withStars = scrapedRepos.filter(r => r.starsToday > 0).length;
+        const withoutStars = scrapedRepos.filter(r => r.starsToday === 0).length;
+        
+        return {
+          success: true,
+          period,
+          date: currentDate,
+          scraped: scrapedRepos.length,
+          saved: savedCount,
+          cleared: existingRepos.length,
+          starsStats: {
+            withStars,
+            withoutStars,
+            percentage: Math.round((withStars / scrapedRepos.length) * 100),
+            maxStars: Math.max(...scrapedRepos.map(r => r.starsToday)),
+            totalStars: scrapedRepos.reduce((sum, r) => sum + r.starsToday, 0),
+          },
+          sample: scrapedRepos.slice(0, 3).map(repo => ({
+            name: `${repo.owner}/${repo.name}`,
+            starsToday: repo.starsToday,
+            language: repo.language,
+          })),
+          message: `Successfully scraped and saved ${savedCount} ${period} trending repositories`,
+        };
+        
+      } catch (error) {
+        console.error(`[MANUAL SCRAPE] Error:`, error);
+        return {
+          success: false,
+          period,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          message: `Failed to scrape ${period} trending repositories`,
+        };
+      }
     }
   }
 }); 

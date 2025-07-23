@@ -1,9 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { modelenceQuery } from '@modelence/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useSession } from 'modelence/client';
 import Page from '../components/Page';
+import PageTransition from '../components/PageTransition';
 import SaveRepoButton from '../components/SaveRepoButton';
+import RotatingText from '../components/RotatingText';
+
 
 interface Repository {
   owner: string;
@@ -13,6 +17,9 @@ interface Repository {
   language: string | null;
   starsToday: number;
   rank: number;
+  ownerAvatar: string | null;
+  recommendationScore?: number;
+  scoreMessage?: string;
 }
 
 function LoadingState() {
@@ -107,25 +114,39 @@ function RepositoryCard({ repo }: { repo: Repository }) {
     <div className="group bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-6 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 hover:-translate-y-1 hover:border-blue-200/50">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-start space-x-3 flex-1 mr-2">
-          {/* Rank Badge */}
+          {/* Owner Avatar */}
           <div className="flex-shrink-0">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-              {repo.rank}
-            </div>
+            <img
+              src={repo.ownerAvatar || `https://github.com/${repo.owner}.png?size=64`}
+              alt={`${repo.owner} avatar`}
+              className="w-12 h-12 rounded-full border-2 border-gray-100 shadow-sm"
+              onError={(e) => {
+                e.currentTarget.src = `https://github.com/${repo.owner}.png?size=64`;
+              }}
+            />
           </div>
           
           <div className="flex-1 min-w-0">
-            <Link
-              to={`/repo/${repo.owner}/${repo.name}`}
-              className="block group-hover:scale-[1.02] transition-transform duration-200"
-            >
-              <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors mb-1 leading-tight">
-                {repo.name}
-              </h3>
-              <p className="text-sm text-gray-500 group-hover:text-gray-700 transition-colors font-medium">
-                {fullName}
-              </p>
-            </Link>
+            <div className="space-y-2">
+              <Link
+                to={`/repo/${repo.owner}/${repo.name}`}
+                className="block group-hover:scale-[1.02] transition-transform duration-200"
+              >
+                <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors mb-1 leading-tight">
+                  {repo.name}
+                </h3>
+                <p className="text-sm text-gray-500 group-hover:text-gray-700 transition-colors font-medium">
+                  {fullName}
+                </p>
+              </Link>
+              <Link
+                to={`/repo/${repo.owner}/${repo.name}`}
+                className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800 transition-colors font-medium"
+              >
+                <span className="mr-1">🤖</span>
+                AI Analysis
+              </Link>
+            </div>
             <a
               href={repo.url}
               target="_blank"
@@ -139,7 +160,7 @@ function RepositoryCard({ repo }: { repo: Repository }) {
             </a>
           </div>
         </div>
-        <SaveRepoButton repoId={`${repo.owner}/${repo.name}`} repoName={fullName} />
+        <SaveRepoButton owner={repo.owner} name={repo.name} />
       </div>
       
       <div className="mb-4">
@@ -147,6 +168,8 @@ function RepositoryCard({ repo }: { repo: Repository }) {
           {description}
         </p>
       </div>
+
+
       
       <div className="flex items-center justify-between pt-4 border-t border-gray-100">
         <div className="flex items-center space-x-5">
@@ -169,11 +192,109 @@ function RepositoryCard({ repo }: { repo: Repository }) {
 type TimePeriod = 'daily' | 'weekly' | 'monthly';
 
 export default function TrendingReposPage() {
+  const { user } = useSession();
+  const navigate = useNavigate();
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('daily');
+  const [repositoriesWithScores, setRepositoriesWithScores] = useState<Repository[]>([]);
+
+  // Check if user needs to complete onboarding
+  const { data: hasCompletedOnboarding } = useQuery({
+    ...modelenceQuery<boolean>('userPreferences.hasCompletedOnboarding', {}),
+    enabled: !!user,
+  });
+
+  // Redirect to onboarding if user is logged in but hasn't completed it
+  // Add delay to avoid race conditions with users just completing onboarding
+  useEffect(() => {
+    if (user && hasCompletedOnboarding === false) {
+      console.log('User needs to complete onboarding, redirecting...');
+      // Small delay to avoid race conditions with users just finishing onboarding
+      const redirectTimer = setTimeout(() => {
+        navigate('/onboarding');
+      }, 300);
+      
+      return () => clearTimeout(redirectTimer);
+    }
+  }, [user, hasCompletedOnboarding, navigate]);
   
   const { data: repositories = [], isLoading, error } = useQuery(
     modelenceQuery<Repository[]>('githubTrending.getTrendingRepos', { period: selectedPeriod })
   );
+
+  // Debug: Log the first repository to see what avatar data we're getting
+  useEffect(() => {
+    if (repositories.length > 0) {
+      console.log('First repository data:', repositories[0]);
+      console.log('ownerAvatar field:', repositories[0].ownerAvatar);
+    }
+  }, [repositories]);
+
+  // Get user preferences for scoring
+  const { data: userPreferences } = useQuery({
+    ...modelenceQuery('userPreferences.getTechRecommendationContext', {}),
+    enabled: !!user && hasCompletedOnboarding === true,
+  });
+
+  // Calculate recommendation scores when repositories or user preferences change
+  useEffect(() => {
+    const calculateScores = async () => {
+      if (!repositories.length) {
+        setRepositoriesWithScores([]);
+        return;
+      }
+
+      if (!user || !userPreferences || !(userPreferences as any)?.onboardingCompleted) {
+        // For users without preferences, show repositories without scores
+        setRepositoriesWithScores(repositories.map(repo => ({
+          ...repo,
+          recommendationScore: 50,
+          scoreMessage: user ? 'Complete onboarding for personalized scores' : 'Sign in for personalized recommendations'
+        })));
+        return;
+      }
+
+      try {
+        // Calculate scores for all repositories
+        const query = modelenceQuery('recommendationScoring.calculateMultipleScores', {
+          repos: repositories.map(repo => ({
+            owner: repo.owner,
+            name: repo.name,
+            language: repo.language,
+            description: repo.description,
+            topics: [] // GitHub trending API doesn't provide topics, but our algorithm handles empty arrays
+          })),
+          userPreferences
+        });
+
+        const scoredRepos = await query.queryFn() as any[];
+        
+        // Merge scored data with original repository data and sort by score
+        const reposWithScores = repositories.map(repo => {
+          const scoredRepo = scoredRepos.find((scored: any) => 
+            scored.owner === repo.owner && scored.name === repo.name
+          );
+          return {
+            ...repo,
+            recommendationScore: scoredRepo?.recommendationScore || 50,
+            scoreMessage: scoredRepo?.scoreMessage || 'Unable to calculate score'
+          };
+        }).sort((a, b) => (b.recommendationScore || 50) - (a.recommendationScore || 50));
+
+        setRepositoriesWithScores(reposWithScores);
+        console.log('Calculated recommendation scores for', reposWithScores.length, 'repositories');
+      } catch (error) {
+        console.error('Error calculating recommendation scores:', error);
+        // Fall back to repositories without scores
+        setRepositoriesWithScores(repositories.map(repo => ({
+          ...repo,
+          recommendationScore: 50,
+          scoreMessage: 'Unable to calculate personalized score'
+        })));
+      }
+    };
+
+    calculateScores();
+  }, [repositories, userPreferences, user]);
 
   const timePeriods: { value: TimePeriod; label: string; description: string }[] = [
     { value: 'daily', label: 'Daily', description: 'Today\'s trending repositories' },
@@ -183,98 +304,144 @@ export default function TrendingReposPage() {
 
   return (
     <Page>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-        <div className="container mx-auto px-6 py-12">
-          {/* Header Section */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-4">
-              Trending Repositories
-            </h1>
-            <p className="text-gray-600 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
-              Discover the most popular repositories on GitHub. Stay up-to-date with what's trending in the developer community.
-            </p>
-          </div>
-          
-          {/* Time Period Selector */}
-          <div className="flex justify-center mb-8">
-            <div className="bg-white rounded-2xl p-2 shadow-lg border border-gray-200/50 backdrop-blur-sm">
-              <div className="flex flex-wrap gap-1">
-                {timePeriods.map((period) => (
+      <PageTransition>
+                <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+          <div className="container mx-auto px-6 py-8">
+            <div className="text-center mb-8">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4">
+                <RotatingText 
+                  staticText="Discover trending"
+                  rotatingWords={['repos', 'tools', 'frameworks', 'libraries']}
+                />
+              </h1>
+              <p className="text-xl text-gray-600">
+                Find the hottest repositories {user && hasCompletedOnboarding ? 'personalized for you' : 'on GitHub'}
+              </p>
+            </div>
+
+            {/* Period selector */}
+            <div className="flex justify-center mb-8">
+              <div className="bg-white rounded-xl p-1 shadow-lg border border-gray-200">
+                {(['daily', 'weekly', 'monthly'] as TimePeriod[]).map((period) => (
                   <button
-                    key={period.value}
-                    onClick={() => setSelectedPeriod(period.value)}
-                    className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
-                      selectedPeriod === period.value
-                        ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/25 transform scale-105'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    key={period}
+                    onClick={() => setSelectedPeriod(period)}
+                    className={`px-6 py-3 rounded-lg font-semibold capitalize transition-all duration-200 ${
+                      selectedPeriod === period
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                     }`}
-                    title={period.description}
                   >
-                    {period.label}
+                    {period}
                   </button>
                 ))}
               </div>
             </div>
-          </div>
-          
-          {/* Selected Period Info */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center px-4 py-2 bg-white/70 backdrop-blur-sm rounded-full border border-gray-200/50">
-              <span className="text-sm text-gray-600">
-                Showing {timePeriods.find(p => p.value === selectedPeriod)?.description.toLowerCase()}
-              </span>
-            </div>
-          </div>
 
-          {/* Loading State with Period Context */}
-          {isLoading && (
-            <div>
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center px-6 py-3 bg-white/80 backdrop-blur-sm text-blue-700 rounded-2xl shadow-lg border border-blue-200/50">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <span className="font-medium">Loading {selectedPeriod} trending repositories...</span>
-                </div>
-              </div>
-              <LoadingState />
-            </div>
-          )}
-        
-        {error && <ErrorState error={error as Error} />}
-        
-        {!isLoading && !error && repositories.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-gray-400 text-6xl mb-4">📦</div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">No repositories found</h2>
-            <p className="text-gray-600">
-              There are no {selectedPeriod} trending repositories available at the moment.
-            </p>
-          </div>
-        )}
-        
-          {!isLoading && !error && repositories.length > 0 && (
-            <div>
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center px-4 py-2 bg-green-50 text-green-700 rounded-full border border-green-200/50">
-                  <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                  <span className="text-sm font-medium">
-                    Found {repositories.length} {selectedPeriod} trending repositories
-                  </span>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {repositories.map((repo) => (
-                  <RepositoryCard key={`${repo.owner}/${repo.name}`} repo={repo} />
+            {/* Loading state */}
+            {isLoading && (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="bg-white rounded-xl p-6 shadow-lg animate-pulse">
+                    <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded mb-4 w-3/4"></div>
+                    <div className="h-2 bg-gray-200 rounded mb-2"></div>
+                    <div className="h-2 bg-gray-200 rounded mb-2 w-1/2"></div>
+                  </div>
                 ))}
               </div>
-            </div>
-                    )}
+            )}
+
+            {/* Error state */}
+            {error && (
+              <div className="text-center py-12">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h2>
+                <p className="text-gray-600 mb-4">
+                  {error instanceof Error ? error.message : 'Failed to load trending repositories'}
+                </p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  Try Again
+                </button>
+              </div>
+            )}
+
+            {/* Repository grid */}
+            {!isLoading && !error && repositoriesWithScores.length > 0 && (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {repositoriesWithScores.map((repo, index) => (
+                  <div
+                    key={`${repo.owner}-${repo.name}`}
+                    className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200 hover:border-blue-300"
+                  >
+                    <div className="p-6">
+                      <div className="flex items-start space-x-4 mb-4">
+                        <img
+                          src={repo.ownerAvatar || `https://github.com/${repo.owner}.png?size=64`}
+                          alt={`${repo.owner} avatar`}
+                          className="w-12 h-12 rounded-full ring-2 ring-gray-100"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = `https://github.com/${repo.owner}.png?size=64`;
+                          }}
+                        />
+                        <div className="flex-1">
+                          <h3 className="text-xl font-bold text-gray-900 mb-1 hover:text-blue-600 transition-colors">
+                            <a
+                              href={`/repo/${repo.owner}/${repo.name}`}
+                              className="hover:underline"
+                            >
+                              {repo.name}
+                            </a>
+                          </h3>
+                          <p className="text-gray-500 text-sm mb-3 font-medium">
+                            by {repo.owner}
+                          </p>
+                          <p className="text-gray-600 text-sm line-clamp-3 mb-4">
+                            {repo.description || 'No description available'}
+                          </p>
+                        </div>
+                        <div className="flex-shrink-0 ml-4">
+                          <SaveRepoButton owner={repo.owner} name={repo.name} />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-sm text-gray-500 mt-4">
+                        <div className="flex items-center space-x-4">
+                          {repo.language && (
+                            <span className="flex items-center">
+                              <span className="w-3 h-3 rounded-full bg-blue-500 mr-2"></span>
+                              {repo.language}
+                            </span>
+                          )}
+                          <span className="flex items-center">
+                            ⭐ {repo.starsToday.toLocaleString()}
+                          </span>
+                        </div>
+                        <span className="text-green-600 font-semibold">
+                          {repo.starsToday > 0 ? `+${repo.starsToday.toLocaleString()} today` : 
+                           repo.starsToday === 0 ? '0 today' : 
+                           `${repo.starsToday} today`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Empty state */}
+                         {!isLoading && !error && repositoriesWithScores.length === 0 && (
+               <div className="text-center py-12">
+                 <h2 className="text-2xl font-bold text-gray-900 mb-2">No repositories found</h2>
+                <p className="text-gray-600">Try selecting a different time period</p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </PageTransition>
     </Page>
   );
 } 

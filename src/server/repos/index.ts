@@ -129,6 +129,90 @@ export default new Module('repos', {
         console.error(`Failed to fetch repository details for ${owner}/${name}:`, error);
         throw new Error(`Repository ${owner}/${name} not found or access denied`);
       }
+    },
+
+    async searchRepoByUrl(args) {
+      const { url } = z.object({
+        url: z.string().url(),
+      }).parse(args);
+
+      // Parse GitHub URL to extract owner and repo name
+      const parseGitHubUrl = (url: string): { owner: string; name: string } => {
+        try {
+          const urlObj = new URL(url);
+          
+          // Check if it's a GitHub URL
+          if (!['github.com', 'www.github.com'].includes(urlObj.hostname)) {
+            throw new Error('URL must be a GitHub repository URL');
+          }
+
+          // Extract path segments
+          const pathSegments = urlObj.pathname.split('/').filter(segment => segment.length > 0);
+          
+          if (pathSegments.length < 2) {
+            throw new Error('Invalid GitHub repository URL format');
+          }
+
+          const [owner, name] = pathSegments;
+          
+          // Remove .git suffix if present
+          const cleanName = name.endsWith('.git') ? name.slice(0, -4) : name;
+          
+          return { owner, name: cleanName };
+        } catch (error) {
+          if (error instanceof Error) {
+            throw error;
+          }
+          throw new Error('Invalid GitHub repository URL');
+        }
+      };
+
+      const { owner, name } = parseGitHubUrl(url);
+
+      try {
+        // Get basic repository information
+        const { data: repo } = await octokit.repos.get({ owner, repo: name });
+
+        if (!repo.owner) {
+          throw new Error('Repository owner data missing from GitHub API response');
+        }
+
+        // Get repository languages
+        let languages = {};
+        try {
+          const { data: languagesData } = await octokit.repos.listLanguages({ owner, repo: name });
+          languages = languagesData;
+        } catch (error) {
+          console.warn(`Failed to fetch languages for ${owner}/${name}:`, error);
+        }
+
+        return {
+          id: repo.id,
+          name: repo.name,
+          full_name: repo.full_name,
+          description: repo.description,
+          html_url: repo.html_url,
+          stargazers_count: repo.stargazers_count,
+          forks_count: repo.forks_count,
+          open_issues_count: repo.open_issues_count,
+          language: repo.language,
+          languages: languages,
+          updated_at: repo.updated_at,
+          created_at: repo.created_at,
+          default_branch: repo.default_branch,
+          owner: {
+            login: repo.owner.login,
+            avatar_url: repo.owner.avatar_url
+          },
+          topics: repo.topics || []
+        };
+      } catch (error) {
+        console.error(`Failed to fetch repository from URL ${url}:`, error);
+        if (error instanceof Error) {
+          throw new Error(`Repository not found: ${error.message}`);
+        }
+        throw new Error(`Repository not found or access denied`);
+      }
     }
   }
 });

@@ -10,19 +10,25 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@modelence/ai": "^0.1.2",
     "@modelence/auth-ui": "^0.1.12",
     "@modelence/react-query": "^1.0.2",
     "@octokit/rest": "^22.0.0",
+    "@tailwindcss/typography": "^0.5.15",
     "@tanstack/react-query": "^5.83.0",
     "@types/cheerio": "^0.22.35",
     "axios": "^1.10.0",
     "cheerio": "^1.1.2",
+    "framer-motion": "^12.23.7",
     "marked": "^16.1.1",
     "modelence": "^0.5.6",
+    "node-fetch": "^3.3.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.4.1",
-    "react-router-dom": "^6.22.0"
+    "react-router-dom": "^6.22.0",
+    "repomix": "^0.3.3"
   },
   "devDependencies": {
     "@types/marked": "^5.0.2",

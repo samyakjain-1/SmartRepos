@@ -10,6 +10,14 @@ export const routes = [
     Component: lazy(() => import('./pages/RepoDetailPage'))
   },
   {
+    path: '/search',
+    Component: lazy(() => import('./pages/RepoSearchPage'))
+  },
+  {
+    path: '/saved-repos',
+    Component: lazy(() => import('./pages/SavedReposPage'))
+  },
+  {
     path: '/about',
     Component: lazy(() => import('./pages/HomePage'))
   },
@@ -20,5 +28,9 @@ export const routes = [
   {
     path: '/auth/signup',
     Component: lazy(() => import('./pages/SignupPage'))
+  },
+  {
+    path: '/onboarding',
+    Component: lazy(() => import('./pages/OnboardingPage'))
   },
 ];

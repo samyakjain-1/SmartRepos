@@ -32,6 +32,29 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
+# Cache
+cache/
+.eslintcache
+*.tsbuildinfo
+
+# Temporary files
+*.tmp
+*.temp
+
+# Modelence specific
 .modelence.env
-./ai-chat
+.modelence/
+
+# AI chat directory
+ai-chat/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Runtime data
+*.pid
+*.seed
+*.pid.lock
 

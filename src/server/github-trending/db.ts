@@ -9,6 +9,7 @@ export const dbTrendingRepos = new Store('trendingRepos', {
     language: schema.string().optional(),
     starsToday: schema.number(),
     rank: schema.number(),
+    ownerAvatar: schema.string().optional(), // Owner's avatar image URL
     period: schema.enum(['daily', 'weekly', 'monthly']),
     scrapedAt: schema.date(),
     scrapedDate: schema.string(), // YYYY-MM-DD format for easy querying
