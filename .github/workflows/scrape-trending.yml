@@ -1,0 +1,41 @@
+name: Scrape GitHub Trending Repositories
+
+on:
+  schedule:
+    # Run daily at 2:00 AM UTC (adjust timezone as needed)
+    - cron: '0 2 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  scrape-trending:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build the application
+        run: npm run build
+
+      - name: Scrape and update trending repositories
+        env:
+          # Use the same environment variables your Modelence app uses
+          NODE_ENV: production
+        run: |
+          chmod +x scripts/scrape-trending-modelence.js
+          node scripts/scrape-trending-modelence.js
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::GitHub trending scraping job failed"
+          # You can add webhook notifications, Slack alerts, etc. here 
