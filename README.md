@@ -1,4 +1,4 @@
-# GitHub Trends
+# SmartRepos
 
 A modern platform for discovering trending GitHub repositories with personalized AI-powered insights and recommendations. Built with the Modelence framework, this application helps developers find relevant repositories based on their skills, interests, and goals.
 
