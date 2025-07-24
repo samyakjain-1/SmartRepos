@@ -57,7 +57,7 @@ export default new Module('userPreferences', {
           return null;
         }
 
-        // Format for AI analysis (same structure as devora)
+        // Format for AI analysis
         return {
           programmingLanguages: userPrefs.programmingLanguages || [],
           experienceLevel: userPrefs.experienceLevel || 'Beginner',
