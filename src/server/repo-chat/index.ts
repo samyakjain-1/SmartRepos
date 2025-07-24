@@ -10,7 +10,7 @@ const octokit = new Octokit({
 });
 
 /**
- * Get repository details for chat context (same as devora's getRepoDetails)
+ * Get repository details for chat context
  */
 async function getRepoDetails(owner: string, repoName: string, githubToken: string) {
   try {
