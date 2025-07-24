@@ -773,7 +773,6 @@ export default function RepoDetailPage() {
     { id: 'description', label: 'Description', icon: '' },
     { id: 'guide', label: 'Learning Guide', icon: '' },
     { id: 'chat', label: 'Chat Assistant', icon: '' },
-    { id: 'info', label: 'Info', icon: '' },
   ];
 
   const { data: repo, isLoading, error } = useQuery(
@@ -1085,4 +1084,4 @@ export default function RepoDetailPage() {
       </PageTransition>
     </Page>
   );
-} 
+}

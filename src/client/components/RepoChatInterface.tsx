@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { modelenceQuery } from '@modelence/react-query';
 import { marked } from 'marked';
+import { aiCache } from '../utils/aiCache';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -46,14 +47,29 @@ function MessageContent({ content }: { content: string }) {
 
 export default function RepoChatInterface({ owner, repoName }: RepoChatInterfaceProps) {
   const [message, setMessage] = useState('');
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([
-    { 
-      role: 'assistant', 
-      content: `Hi there! I'm your ${repoName} assistant. Ask me anything about ${repoName}!` 
-    }
-  ]);
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const cachedHistory = aiCache.get('chat', owner, repoName);
+    if (cachedHistory) {
+      setChatHistory(cachedHistory);
+    } else {
+      setChatHistory([
+        { 
+          role: 'assistant', 
+          content: `Hi there! I'm your ${repoName} assistant. Ask me anything about ${repoName}!` 
+        }
+      ]);
+    }
+  }, [owner, repoName]);
+
+  useEffect(() => {
+    if (chatHistory.length > 1) {
+      aiCache.set('chat', owner, repoName, chatHistory);
+    }
+  }, [chatHistory, owner, repoName]);
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -248,4 +264,4 @@ export default function RepoChatInterface({ owner, repoName }: RepoChatInterface
       </div>
     </div>
   );
-} 
+}

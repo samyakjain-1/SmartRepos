@@ -5,7 +5,7 @@ interface CacheItem {
 }
 
 class AICache {
-  private getKey(type: 'analysis' | 'description' | 'guide', owner: string, name: string): string {
+  private getKey(type: 'analysis' | 'description' | 'guide' | 'chat', owner: string, name: string): string {
     return `ai-${type}-${owner}-${name}`;
   }
 
@@ -16,7 +16,7 @@ class AICache {
   // Cache for 7 days (7 * 24 * 60 * 60 * 1000)
   private readonly DEFAULT_EXPIRY = 7 * 24 * 60 * 60 * 1000;
 
-  set(type: 'analysis' | 'description' | 'guide', owner: string, name: string, data: any, customExpiry?: number): void {
+  set(type: 'analysis' | 'description' | 'guide' | 'chat', owner: string, name: string, data: any, customExpiry?: number): void {
     try {
       const key = this.getKey(type, owner, name);
       const cacheItem: CacheItem = {
@@ -30,7 +30,7 @@ class AICache {
     }
   }
 
-  get(type: 'analysis' | 'description' | 'guide', owner: string, name: string): any | null {
+  get(type: 'analysis' | 'description' | 'guide' | 'chat', owner: string, name: string): any | null {
     try {
       const key = this.getKey(type, owner, name);
       const cached = localStorage.getItem(key);
@@ -51,7 +51,7 @@ class AICache {
     }
   }
 
-  remove(type: 'analysis' | 'description' | 'guide', owner: string, name: string): void {
+  remove(type: 'analysis' | 'description' | 'guide' | 'chat', owner: string, name: string): void {
     try {
       const key = this.getKey(type, owner, name);
       localStorage.removeItem(key);
@@ -111,4 +111,4 @@ class AICache {
   }
 }
 
-export const aiCache = new AICache(); 
+export const aiCache = new AICache();
