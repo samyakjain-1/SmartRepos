@@ -3,7 +3,6 @@ import { z } from 'zod';
 
 /**
  * Calculate a recommendation score based on how well a technology matches a user's preferences
- * Uses the exact same algorithm as devora
  * @param repo Repository information
  * @param userPreferences User's quiz responses and preferences
  * @returns Score from 0-100 indicating how recommended the technology is for the user
