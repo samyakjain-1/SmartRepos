@@ -129,6 +129,7 @@ Stats:
 - Forks: ${repoData.forks_count}
 - Language: ${repoData.language || 'Not specified'}
 - Topics: ${repoData.topics ? repoData.topics.join(', ') : 'None'}
+- Date Created: ${new Date(repoData.created_at).toLocaleDateString()}
 `;
 
       // Format chat history for context - limit to last 4 exchanges to reduce tokens (exact same as devora)
@@ -226,4 +227,4 @@ Keep your response focused and concise.`;
       };
     },
   },
-}); 
+});
