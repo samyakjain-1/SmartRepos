@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { modelenceQuery, modelenceMutation } from '@modelence/react-query';
@@ -161,52 +161,68 @@ function ReadmeContent({ content }: { content: string }) {
       // Enhance badge/shield images
       .replace(
         /<img([^>]*src="[^"]*shields\.io[^"]*"[^>]*)>/gi,
-        '<img$1 class="inline-block mx-1 my-0.5 max-h-6 shadow-none rounded">'
+        '<img$1 class="inline-block mx-1 my-0.5 max-h-6 shadow-none rounded max-w-full">'
       )
       .replace(
         /<img([^>]*src="[^"]*badge[^"]*"[^>]*)>/gi,
-        '<img$1 class="inline-block mx-1 my-0.5 max-h-6 shadow-none rounded">'
+        '<img$1 class="inline-block mx-1 my-0.5 max-h-6 shadow-none rounded max-w-full">'
       )
       // Enhance external links
       .replace(
         /<a([^>]*href="https?:\/\/[^"]*"[^>]*)>/gi,
-        '<a$1 target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 transition-colors duration-200">'
+        '<a$1 target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 transition-colors duration-200 break-words">'
       )
       // Enhance contributor/avatar images
       .replace(
         /<img([^>]*src="[^"]*avatars[^"]*"[^>]*)>/gi,
-        '<img$1 class="inline-block w-12 h-12 rounded-full mx-1 my-1 border-2 border-white shadow-md">'
+        '<img$1 class="inline-block w-12 h-12 rounded-full mx-1 my-1 border-2 border-white shadow-md max-w-full">'
+      )
+      // Wrap tables in responsive containers
+      .replace(
+        /<table([^>]*)>/gi,
+        '<div class="overflow-x-auto w-full"><table$1 class="min-w-full">'
+      )
+      .replace(
+        /<\/table>/gi,
+        '</table></div>'
+      )
+      // Make all images responsive
+      .replace(
+        /<img(?![^>]*class="[^"]*(?:inline-block|w-12|max-h-6))/gi,
+        '<img class="max-w-full h-auto"'
       );
   };
 
   const enhancedHtml = enhanceHtml(htmlContent);
 
   return (
-    <div className="prose prose-gray max-w-none 
+    <div className="prose prose-gray max-w-none overflow-hidden w-full
       prose-headings:text-gray-900 
-      prose-h1:text-3xl prose-h1:font-bold prose-h1:mb-6 prose-h1:mt-8 prose-h1:first:mt-0 prose-h1:pb-3 prose-h1:border-b-2 prose-h1:border-blue-200
-      prose-h2:text-2xl prose-h2:font-semibold prose-h2:mb-4 prose-h2:mt-8 prose-h2:border-b prose-h2:border-gray-200 prose-h2:pb-2
-      prose-h3:text-xl prose-h3:font-medium prose-h3:mb-3 prose-h3:mt-6
-      prose-h4:text-lg prose-h4:font-medium prose-h4:mb-2 prose-h4:mt-4
-      prose-h5:text-base prose-h5:font-medium prose-h5:mb-2 prose-h5:mt-3
-      prose-h6:text-sm prose-h6:font-medium prose-h6:mb-1 prose-h6:mt-2 prose-h6:uppercase prose-h6:tracking-wide prose-h6:text-gray-600
-      prose-p:text-gray-700 prose-p:leading-relaxed prose-p:mb-4
-      prose-a:text-blue-600 prose-a:no-underline hover:prose-a:text-blue-800 hover:prose-a:underline prose-a:transition-colors prose-a:duration-200
+      prose-h1:text-2xl sm:prose-h1:text-3xl prose-h1:font-bold prose-h1:mb-4 sm:prose-h1:mb-6 prose-h1:mt-6 sm:prose-h1:mt-8 prose-h1:first:mt-0 prose-h1:pb-3 prose-h1:border-b-2 prose-h1:border-blue-200
+      prose-h2:text-xl sm:prose-h2:text-2xl prose-h2:font-semibold prose-h2:mb-3 sm:prose-h2:mb-4 prose-h2:mt-6 sm:prose-h2:mt-8 prose-h2:border-b prose-h2:border-gray-200 prose-h2:pb-2
+      prose-h3:text-lg sm:prose-h3:text-xl prose-h3:font-medium prose-h3:mb-2 sm:prose-h3:mb-3 prose-h3:mt-4 sm:prose-h3:mt-6
+      prose-h4:text-base sm:prose-h4:text-lg prose-h4:font-medium prose-h4:mb-2 prose-h4:mt-3 sm:prose-h4:mt-4
+      prose-h5:text-sm sm:prose-h5:text-base prose-h5:font-medium prose-h5:mb-2 prose-h5:mt-3
+      prose-h6:text-xs sm:prose-h6:text-sm prose-h6:font-medium prose-h6:mb-1 prose-h6:mt-2 prose-h6:uppercase prose-h6:tracking-wide prose-h6:text-gray-600
+      prose-p:text-gray-700 prose-p:leading-relaxed prose-p:mb-4 prose-p:text-sm sm:prose-p:text-base
+      prose-a:text-blue-600 prose-a:no-underline hover:prose-a:text-blue-800 hover:prose-a:underline prose-a:transition-colors prose-a:duration-200 prose-a:break-words
       prose-strong:text-gray-900 prose-strong:font-semibold
       prose-em:text-gray-700 prose-em:italic
-      prose-code:bg-gray-100 prose-code:text-gray-800 prose-code:px-2 prose-code:py-1 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-code:border prose-code:before:content-none prose-code:after:content-none
-      prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:p-4 prose-pre:rounded-lg prose-pre:overflow-x-auto prose-pre:my-4 prose-pre:border prose-pre:shadow-sm
-      prose-blockquote:border-l-4 prose-blockquote:border-blue-200 prose-blockquote:pl-4 prose-blockquote:py-2 prose-blockquote:my-4 prose-blockquote:bg-blue-50 prose-blockquote:text-gray-700 prose-blockquote:italic prose-blockquote:rounded-r
-      prose-ul:list-disc prose-ul:pl-6 prose-ul:mb-4 prose-ul:space-y-1
-      prose-ol:list-decimal prose-ol:pl-6 prose-ol:mb-4 prose-ol:space-y-1
-      prose-li:text-gray-700 prose-li:leading-relaxed
-      prose-table:border-collapse prose-table:w-full prose-table:mb-4 prose-table:border prose-table:border-gray-300 prose-table:rounded-lg prose-table:overflow-hidden prose-table:shadow-sm
-      prose-th:border prose-th:border-gray-300 prose-th:bg-gray-50 prose-th:px-4 prose-th:py-3 prose-th:font-semibold prose-th:text-left prose-th:text-gray-800
-      prose-td:border prose-td:border-gray-300 prose-td:px-4 prose-td:py-3 prose-td:text-gray-700
+      prose-code:bg-gray-100 prose-code:text-gray-800 prose-code:px-1.5 sm:prose-code:px-2 prose-code:py-1 prose-code:rounded prose-code:text-xs sm:prose-code:text-sm prose-code:font-mono prose-code:border prose-code:before:content-none prose-code:after:content-none prose-code:break-words
+      prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:p-3 sm:prose-pre:p-4 prose-pre:rounded-lg prose-pre:overflow-x-auto prose-pre:my-4 prose-pre:border prose-pre:shadow-sm prose-pre:text-xs sm:prose-pre:text-sm prose-pre:max-w-full
+      prose-blockquote:border-l-4 prose-blockquote:border-blue-200 prose-blockquote:pl-3 sm:prose-blockquote:pl-4 prose-blockquote:py-2 prose-blockquote:my-4 prose-blockquote:bg-blue-50 prose-blockquote:text-gray-700 prose-blockquote:italic prose-blockquote:rounded-r prose-blockquote:text-sm sm:prose-blockquote:text-base
+      prose-ul:list-disc prose-ul:pl-4 sm:prose-ul:pl-6 prose-ul:mb-4 prose-ul:space-y-1
+      prose-ol:list-decimal prose-ol:pl-4 sm:prose-ol:pl-6 prose-ol:mb-4 prose-ol:space-y-1
+      prose-li:text-gray-700 prose-li:leading-relaxed prose-li:text-sm sm:prose-li:text-base
+      prose-table:border-collapse prose-table:w-full prose-table:mb-4 prose-table:border prose-table:border-gray-300 prose-table:rounded-lg prose-table:shadow-sm prose-table:text-xs sm:prose-table:text-sm prose-table:min-w-full
+      prose-th:border prose-th:border-gray-300 prose-th:bg-gray-50 prose-th:px-2 sm:prose-th:px-4 prose-th:py-2 sm:prose-th:py-3 prose-th:font-semibold prose-th:text-left prose-th:text-gray-800
+      prose-td:border prose-td:border-gray-300 prose-td:px-2 sm:prose-td:px-4 prose-td:py-2 sm:prose-td:py-3 prose-td:text-gray-700
       prose-img:rounded-lg prose-img:shadow-sm prose-img:max-w-full prose-img:h-auto prose-img:my-4
-      prose-hr:border-0 prose-hr:border-t prose-hr:border-gray-300 prose-hr:my-8
+      prose-hr:border-0 prose-hr:border-t prose-hr:border-gray-300 prose-hr:my-6 sm:prose-hr:my-8
     ">      
       <div 
+        className="overflow-x-auto w-full"
+        style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
         dangerouslySetInnerHTML={{ __html: enhancedHtml }} 
       />
     </div>
@@ -761,6 +777,78 @@ function AIGuideContent({ owner, name, description, readmeContent }: {
 }
 
 export default function RepoDetailPage() {
+  // Add mobile-specific styles
+  React.useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .repo-detail-page {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
+      }
+      .repo-detail-page * {
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+      }
+      .repo-detail-page pre {
+        overflow-x: auto !important;
+        white-space: pre !important;
+        word-break: normal !important;
+        max-width: calc(100vw - 2rem) !important;
+      }
+      .repo-detail-page table {
+        display: block !important;
+        overflow-x: auto !important;
+        white-space: nowrap !important;
+        max-width: calc(100vw - 2rem) !important;
+      }
+      .repo-detail-page img {
+        max-width: 100% !important;
+        height: auto !important;
+      }
+      .repo-detail-page .prose {
+        max-width: 100% !important;
+        width: 100% !important;
+      }
+      .repo-detail-page .prose pre {
+        max-width: calc(100vw - 4rem) !important;
+        overflow-x: auto !important;
+      }
+      .repo-detail-page .prose table {
+        max-width: calc(100vw - 4rem) !important;
+        overflow-x: auto !important;
+        display: block !important;
+      }
+      @media (max-width: 640px) {
+        .repo-detail-page {
+          padding: 0 !important;
+        }
+        .repo-detail-page .prose {
+          font-size: 14px !important;
+          padding: 0 !important;
+        }
+        .repo-detail-page .prose h1 {
+          font-size: 20px !important;
+        }
+        .repo-detail-page .prose h2 {
+          font-size: 18px !important;
+        }
+        .repo-detail-page .prose h3 {
+          font-size: 16px !important;
+        }
+        .repo-detail-page .prose pre {
+          max-width: calc(100vw - 2rem) !important;
+          margin-left: 0 !important;
+          margin-right: 0 !important;
+        }
+        .repo-detail-page .prose table {
+          max-width: calc(100vw - 2rem) !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
   const { owner, name } = useParams<{ owner: string; name: string }>();
   const { user } = useSession();
   const [activeTab, setActiveTab] = useState<Tab>('readme');
@@ -828,7 +916,7 @@ export default function RepoDetailPage() {
   if (isLoading) {
     return (
       <Page title="Loading Repository...">
-        <div className="container mx-auto px-6 py-8">
+        <div className="w-full mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-8 overflow-x-hidden" style={{ maxWidth: '100vw' }}>
           <LoadingState />
         </div>
       </Page>
@@ -838,7 +926,7 @@ export default function RepoDetailPage() {
   if (error || !repo) {
     return (
       <Page>
-        <div className="container mx-auto px-6 py-8">
+        <div className="w-full mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-8 overflow-x-hidden" style={{ maxWidth: '100vw' }}>
           <ErrorState error={error as Error || new Error('Repository not found')} />
         </div>
       </Page>
@@ -866,8 +954,8 @@ export default function RepoDetailPage() {
   return (
     <Page title={`${repo.name} - Repository Details`}>
       <PageTransition>
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-          <div className="container mx-auto px-6 py-8">
+        <div className="repo-detail-page min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 overflow-x-hidden w-full">
+          <div className="w-full mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-8 overflow-x-hidden" style={{ maxWidth: '100vw' }}>
             {/* Back button */}
             <Link 
               to="/" 
@@ -880,8 +968,8 @@ export default function RepoDetailPage() {
             </Link>
 
             {/* Repository Header */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 mb-8 border border-gray-100">
-              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-3 sm:p-4 md:p-6 lg:p-8 mb-4 sm:mb-6 md:mb-8 border border-gray-100 w-full overflow-hidden">
+              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 sm:gap-6">
                 <div className="flex-1">
                   <div className="flex items-center mb-4">
                     <div className="flex items-center">
@@ -891,13 +979,13 @@ export default function RepoDetailPage() {
                         className="w-12 h-12 rounded-full mr-4 ring-2 ring-gray-100"
                       />
                       <div>
-                        <h1 className="text-3xl font-bold text-gray-900">
+                        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 break-words">
                           <span className="text-blue-600">{repo.owner.login}</span>
-                          <span className="text-gray-400 mx-2">/</span>
+                          <span className="text-gray-400 mx-1 sm:mx-2">/</span>
                           <span>{repo.name}</span>
                         </h1>
                         {repo.description && (
-                          <p className="text-gray-600 text-lg mt-2 leading-relaxed">
+                          <p className="text-gray-600 text-sm sm:text-base lg:text-lg mt-2 leading-relaxed">
                             {repo.description}
                           </p>
                         )}
@@ -906,7 +994,7 @@ export default function RepoDetailPage() {
                   </div>
 
                   {/* Repository Stats */}
-                  <div className="flex flex-wrap items-center gap-6 text-gray-600">
+                  <div className="flex flex-wrap items-center gap-3 sm:gap-4 lg:gap-6 text-gray-600 text-sm sm:text-base">
                     {repo.language && (
                       <div className="flex items-center">
                         <div className="w-4 h-4 rounded-full bg-blue-500 mr-2"></div>
@@ -980,14 +1068,14 @@ export default function RepoDetailPage() {
             </div>
 
             {/* Tab Navigation */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg border border-gray-100 overflow-hidden w-full">
               <div className="border-b border-gray-200">
-                <nav className="flex space-x-8 px-8">
+                <nav className="flex overflow-x-auto space-x-4 sm:space-x-6 lg:space-x-8 px-4 sm:px-6 lg:px-8 w-full" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                   {tabs.map((tab) => (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                      className={`py-3 sm:py-4 px-2 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors duration-200 ${
                         activeTab === tab.id
                           ? 'border-blue-500 text-blue-600'
                           : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -1000,9 +1088,9 @@ export default function RepoDetailPage() {
               </div>
 
               {/* Tab Content */}
-              <div className="p-8">
+              <div className="p-3 sm:p-4 md:p-6 lg:p-8 w-full overflow-x-hidden">
                 {activeTab === 'readme' && (
-                  <div>
+                  <div className="w-full overflow-x-hidden">
                     {repo.readme_content ? (
                       <ReadmeContent content={repo.readme_content} />
                     ) : (

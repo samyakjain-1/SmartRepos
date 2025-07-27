@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import Header from './Header';
+import Footer from './Footer';
 
 interface PageProps {
   children: ReactNode;
@@ -7,9 +8,10 @@ interface PageProps {
   sidebar?: ReactNode;
   title?: string;
   showHeader?: boolean;
+  showFooter?: boolean;
 }
 
-export default function Page({ children, className = '', sidebar, title, showHeader = true }: PageProps) {
+export default function Page({ children, className = '', sidebar, title, showHeader = true, showFooter = true }: PageProps) {
   return (
     <div className={`min-h-screen flex flex-col bg-gray-100 ${className}`}>
       {showHeader && <Header />}
@@ -31,6 +33,8 @@ export default function Page({ children, className = '', sidebar, title, showHea
           </main>
         </div>
       </div>
+      
+      {showFooter && <Footer />}
     </div>
   );
 } 
