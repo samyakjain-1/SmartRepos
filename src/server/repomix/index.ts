@@ -1,6 +1,6 @@
 import { Octokit } from '@octokit/rest';
 
-// Global cache for Repomix results (same as devora)
+// Global cache for Repomix results
 declare global {
   var _repomixCache: Record<string, string | null>;
 }

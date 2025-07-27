@@ -62,7 +62,7 @@ A modern platform for discovering trending GitHub repositories with personalized
 ## Project Structure
 
 ```
-my-app/
+SmartRepos/
 ├── src/
 │   ├── client/                     # Frontend React application
 │   │   ├── components/             # Reusable UI components
@@ -98,16 +98,16 @@ my-app/
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/samyakjain-1/github-trends.git
-   cd github-trends
+   git clone https://github.com/samyakjain-1/SmartRepos.git
+   cd SmartRepos
    ```
 2. **Install dependencies**
     ```bash
     npm install
     ```
 3. **Create a new app on https://cloud.modelence.com**
-4. **Configure and add your open ai api key in https://cloud.modelence.com**
-5. **Setup the local environment by going to the settings of the app on modelence. This will create a .modelence.env file in your local dir**
+4. **Configure and add your OpenAI api key in https://cloud.modelence.com**
+5. **Setup the local environment by going to the settings of the app on modelence. This will create a .modelence.env file in your local directory**
 6. **Set GITHUB_TOKEN =your_github_token in .modelence.env created in last step**
 7. **Start Development Server**
     ```bash

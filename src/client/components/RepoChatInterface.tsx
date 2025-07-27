@@ -146,7 +146,7 @@ export default function RepoChatInterface({ owner, repoName }: RepoChatInterface
     }
   };
 
-  // Suggestion buttons (same as devora)
+  // Suggestion buttons
   const suggestions = [
     'How do I get started?',
     'What are the main features?',

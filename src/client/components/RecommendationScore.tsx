@@ -11,7 +11,7 @@ export default function RecommendationScore({
   size = 'medium', 
   showMessage = true 
 }: RecommendationScoreProps) {
-  // Function to get score color based on value (same as devora)
+  // Function to get score color based on value
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-400';
     if (score >= 60) return 'text-blue-400';
